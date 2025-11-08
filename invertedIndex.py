@@ -125,7 +125,6 @@ class InvertedIndex:
 
             text_matches = re.findall(r"<TEXT>(.*?)</TEXT>", doc_str, re.DOTALL)
             if not text_matches:
-                self.add_document(original_doc_id, "")
                 continue
 
             text = " ".join(text_matches)

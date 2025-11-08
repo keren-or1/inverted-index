@@ -41,16 +41,13 @@ def build_index(data_dir: Optional[str] = None) -> InvertedIndex:
 
     if os.path.exists(data_dir):
         print(f"Using data directory: {data_dir}")
-        print("Processing AP collection (242,918 documents across 9 zip files)...")
+        print("Processing AP collection...")
         index.build_index_from_directory(data_dir)
         print(f"\nIndex built successfully!")
         print(f"  Documents indexed: {index.get_collection_size()}")
         print(f"  Unique terms: {index.get_vocabulary_size()}")
     else:
-        print(f"Warning: Data directory not found at {data_dir}")
-        print("Creating a sample index for testing...")
-        index.add_document("AP900101-0001", "test document one")
-        index.add_document("AP900101-0002", "another test document")
+        raise FileNotFoundError(f"Data directory {data_dir} does not exist!")
 
     return index
 
@@ -67,16 +64,7 @@ def read_queries(queries_file: str) -> List[str]:
     queries: List[str] = []
     with open(queries_file, "r") as f:
         for line in f:
-            line = line.strip()
-            if line and not line.startswith("#"):
-                if "→" in line:
-                    query = line.split("→")[1].strip()
-                else:
-                    query = line.split(")", 1)[-1].strip() if ")" in line else line
-
-                if query:
-                    queries.append(query)
-
+            queries.append(line.strip())
     return queries
 
 
@@ -142,7 +130,6 @@ def write_part3_statistics(output_file: str, index: InvertedIndex) -> None:
         for term, freq in sorted_terms[:10]:
             f.write(f"Term: '{term}'\n")
             f.write(f"Document Frequency: {freq}\n")
-            f.write(f"Postings: {index.get_postings_with_original_ids(term)}\n\n")
 
         # Part 2: Top 10 lowest document frequency
         f.write("=" * 60 + "\n")
@@ -151,7 +138,6 @@ def write_part3_statistics(output_file: str, index: InvertedIndex) -> None:
         for term, freq in sorted_terms[-10:]:
             f.write(f"Term: '{term}'\n")
             f.write(f"Document Frequency: {freq}\n")
-            f.write(f"Postings: {index.get_postings_with_original_ids(term)}\n\n")
 
         # Part 3: Characteristics
         f.write("=" * 60 + "\n")
@@ -185,11 +171,9 @@ def write_part3_statistics(output_file: str, index: InvertedIndex) -> None:
 
             f.write(f"Term 1: '{term1}'\n")
             f.write(f"  Document Frequency: {freq1}\n")
-            f.write(f"  Postings: {index.get_postings_with_original_ids(term1)}\n\n")
 
             f.write(f"Term 2: '{term2}'\n")
             f.write(f"  Document Frequency: {freq2}\n")
-            f.write(f"  Postings: {index.get_postings_with_original_ids(term2)}\n\n")
 
             # Check for common documents
             postings1 = set(index.get_postings(term1))
@@ -213,9 +197,8 @@ def write_part3_statistics(output_file: str, index: InvertedIndex) -> None:
 def main() -> None:
     """Main execution function."""
     inverted_index_dir = get_project_root()
-    assignment_dir = os.path.dirname(inverted_index_dir)
 
-    queries_file = os.path.join(assignment_dir, "BooleanQueries.txt")
+    queries_file = os.path.join(inverted_index_dir, "BooleanQueries.txt")
     data_dir = os.path.join(inverted_index_dir, "data")
 
     part2_output = os.path.join(inverted_index_dir, "Part_2.txt")
