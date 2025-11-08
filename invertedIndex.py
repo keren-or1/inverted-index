@@ -8,7 +8,6 @@ This module provides an inverted index data structure that:
 - Maintains sorted postings lists for efficient merge-based operations
 """
 
-import bisect
 import os
 import re
 import zipfile
@@ -188,9 +187,9 @@ class InvertedIndex:
         for token in tokens:
             if token:
                 postings = self.index[token]
-                # Maintain sorted order using binary search insertion
+                # Append new internal_id (always in ascending order since IDs are sequential)
                 if internal_id not in postings:
-                    bisect.insort(postings, internal_id)
+                    postings.append(internal_id)
 
     def get_postings(self, term: str) -> List[int]:
         """Get postings list for a term (sorted list of internal doc IDs).
