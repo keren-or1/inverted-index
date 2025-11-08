@@ -1,12 +1,14 @@
 """Inverted index implementation for efficient document retrieval.
 
 This module provides an inverted index data structure that:
-- Maps each term to a list of documents containing it
+- Maps each term to a sorted list of documents containing it
 - Uses internal document IDs (integers) for efficient processing
 - Maintains bidirectional mapping between internal and original IDs
 - Supports document frequency lookups and vocabulary analysis
+- Maintains sorted postings lists for efficient merge-based operations
 """
 
+import bisect
 import os
 import re
 import zipfile
@@ -19,7 +21,7 @@ class InvertedIndex:
     """An inverted index for efficient document retrieval from AP collection.
 
     Attributes:
-        index: Dictionary mapping terms to sets of internal document IDs
+        index: Dictionary mapping terms to sorted lists of internal document IDs
         doc_id_map: Mapping from internal IDs to original document IDs
         reverse_doc_id_map: Mapping from original IDs to internal IDs
         next_internal_id: Counter for assigning sequential internal IDs
@@ -28,7 +30,7 @@ class InvertedIndex:
 
     def __init__(self) -> None:
         """Initialize an empty inverted index."""
-        self.index: Dict[str, Set[int]] = defaultdict(set)
+        self.index: Dict[str, List[int]] = defaultdict(list)
         self.doc_id_map: Dict[int, str] = {}
         self.reverse_doc_id_map: Dict[str, int] = {}
         self.next_internal_id: int = 0
@@ -203,7 +205,10 @@ class InvertedIndex:
 
         for token in tokens:
             if token:
-                self.index[token].add(internal_id)
+                postings = self.index[token]
+                # Maintain sorted order using binary search insertion
+                if internal_id not in postings:
+                    bisect.insort(postings, internal_id)
 
     def get_postings(self, term: str) -> List[int]:
         """Get postings list for a term (sorted list of internal doc IDs).
@@ -215,7 +220,7 @@ class InvertedIndex:
             Sorted list of internal document IDs containing the term.
         """
         if term in self.index:
-            return sorted(list(self.index[term]))
+            return self.index[term]
         return []
 
     def get_postings_with_original_ids(self, term: str) -> List[str]:
@@ -313,7 +318,7 @@ class InvertedIndex:
 
         with open(file_path, "rb") as f:
             data = pickle.load(f)
-            self.index = defaultdict(set, {k: set(v) for k, v in data["index"].items()})
+            self.index = defaultdict(list, {k: sorted(list(v)) if isinstance(v, set) else v for k, v in data["index"].items()})
             self.doc_id_map = data["doc_id_map"]
             self.reverse_doc_id_map = data["reverse_doc_id_map"]
             self.next_internal_id = data["next_internal_id"]
