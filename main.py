@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
-"""
-Main script for Text Retrieval Assignment 1.
+"""Main orchestration script for Text Retrieval Assignment 1.
 
 This script:
 1. Builds an inverted index from the AP collection
@@ -10,32 +9,35 @@ This script:
 """
 
 import os
-import sys
-from invertedIndex import InvertedIndex
+from typing import List, Optional
+
 from booleanRetrieval import BooleanRetrieval
+from invertedIndex import InvertedIndex
 
 
-def get_project_root():
-    """Get the root directory of the inverted-index project."""
+def get_project_root() -> str:
+    """Get the root directory of the inverted-index project.
+
+    Returns:
+        Absolute path to the project root directory.
+    """
     return os.path.dirname(os.path.abspath(__file__))
 
 
-def build_index(data_dir=None):
-    """
-    Build inverted index from AP collection.
+def build_index(data_dir: Optional[str] = None) -> InvertedIndex:
+    """Build inverted index from AP collection.
 
     Args:
-        data_dir: Optional path to data directory
+        data_dir: Optional path to data directory. If None, uses default location.
 
     Returns:
-        InvertedIndex object
+        InvertedIndex object.
     """
     print("Building inverted index...")
     index = InvertedIndex()
 
     if data_dir is None:
-        # Default location for data directory (in inverted-index folder)
-        data_dir = os.path.join(get_project_root(), 'data')
+        data_dir = os.path.join(get_project_root(), "data")
 
     if os.path.exists(data_dir):
         print(f"Using data directory: {data_dir}")
@@ -47,103 +49,51 @@ def build_index(data_dir=None):
     else:
         print(f"Warning: Data directory not found at {data_dir}")
         print("Creating a sample index for testing...")
-        # Create sample index for demonstration
         index.add_document("AP900101-0001", "test document one")
         index.add_document("AP900101-0002", "another test document")
 
     return index
 
 
-def read_queries(queries_file):
-    """
-    Read Boolean queries from file and convert to RPN format.
+def read_queries(queries_file: str) -> List[str]:
+    """Read Boolean queries from file.
 
     Args:
-        queries_file: Path to BooleanQueries.txt
+        queries_file: Path to BooleanQueries.txt.
 
     Returns:
-        List of query strings in RPN format
+        List of query strings.
     """
-    queries = []
-    with open(queries_file, 'r') as f:
+    queries: List[str] = []
+    with open(queries_file, "r") as f:
         for line in f:
             line = line.strip()
-            if line and not line.startswith('#'):
-                # Extract query part (after the arrow if present)
-                if '→' in line:
-                    query = line.split('→')[1].strip()
+            if line and not line.startswith("#"):
+                if "→" in line:
+                    query = line.split("→")[1].strip()
                 else:
-                    query = line.split(')', 1)[-1].strip() if ')' in line else line
+                    query = line.split(")", 1)[-1].strip() if ")" in line else line
 
                 if query:
-                    # Convert to proper RPN format
-                    rpn_query = convert_to_rpn(query)
-                    queries.append(rpn_query)
+                    queries.append(query)
 
     return queries
 
 
-def convert_to_rpn(query_string):
-    """
-    Convert query string to Reverse Polish Notation.
-
-    The query format uses terms and operators (AND, OR, NOT).
-    NOT is treated as "AND NOT" per the assignment specifications.
-
-    Examples:
-    - "iran israel AND" -> "iran israel AND" (iran AND israel)
-    - "southwest airlines OR africa NOT" -> "southwest airlines OR africa NOT AND"
-      (meaning: (southwest OR airlines) AND (NOT africa))
-    - "winner" -> "winner"
-    - "death cancer OR us NOT" -> "death cancer OR us NOT AND"
-    - "space station NOT moon AND" -> needs interpretation based on precedence
+def process_queries(
+    index: InvertedIndex, queries: List[str]
+) -> List[List[str]]:
+    """Process Boolean queries and return results.
 
     Args:
-        query_string: Raw query string with terms and operators
+        index: InvertedIndex object.
+        queries: List of query strings.
 
     Returns:
-        RPN format query string
-    """
-    tokens = query_string.split()
-    if not tokens:
-        return ""
-
-    # If it's a single term, return as is
-    if len(tokens) == 1:
-        return tokens[0]
-
-    # Convert infix-like format to RPN
-    # The key insight: NOT applies to the next term, AND/OR apply to previous results
-    # We need to handle: "term1 term2 AND", "term1 term2 OR term3 NOT"
-
-    result = []
-    i = 0
-    while i < len(tokens):
-        token = tokens[i]
-
-        if token in ['AND', 'OR', 'NOT']:
-            result.append(token)
-        else:
-            result.append(token)
-
-        i += 1
-
-    return ' '.join(result)
-
-
-def process_queries(index, queries):
-    """
-    Process Boolean queries and return results.
-
-    Args:
-        index: InvertedIndex object
-        queries: List of query strings
-
-    Returns:
-        List of result lists (one per query)
+        List of result lists (one per query).
     """
     retrieval = BooleanRetrieval(index)
-    results = []
+    results: List[List[str]] = []
 
     for i, query in enumerate(queries, 1):
         print(f"Processing query {i}: {query}")
@@ -154,30 +104,27 @@ def process_queries(index, queries):
     return results
 
 
-def write_part2_results(output_file, results):
-    """
-    Write Part 2 results to file.
+def write_part2_results(output_file: str, results: List[List[str]]) -> None:
+    """Write Part 2 results to file.
 
     Args:
-        output_file: Path to Part_2.txt
-        results: List of result lists from queries
+        output_file: Path to Part_2.txt.
+        results: List of result lists from queries.
     """
     print(f"\nWriting results to {output_file}...")
-    with open(output_file, 'w') as f:
+    with open(output_file, "w") as f:
         for result in results:
-            # Write original document IDs separated by spaces
-            line = ' '.join(result) if result else ''
-            f.write(line + '\n')
+            line = " ".join(result) if result else ""
+            f.write(line + "\n")
     print(f"Results written to {output_file}")
 
 
-def write_part3_statistics(output_file, index):
-    """
-    Write Part 3 statistics to file.
+def write_part3_statistics(output_file: str, index: InvertedIndex) -> None:
+    """Write Part 3 statistics to file.
 
     Args:
-        output_file: Path to Part_3.txt
-        index: InvertedIndex object
+        output_file: Path to Part_3.txt.
+        index: InvertedIndex object.
     """
     print(f"\nGenerating statistics for {output_file}...")
 
@@ -263,19 +210,16 @@ def write_part3_statistics(output_file, index):
     print(f"Statistics written to {output_file}")
 
 
-def main():
+def main() -> None:
     """Main execution function."""
-    # Get project directories
     inverted_index_dir = get_project_root()
     assignment_dir = os.path.dirname(inverted_index_dir)
 
-    # Paths to input files
-    queries_file = os.path.join(assignment_dir, 'BooleanQueries.txt')
-    data_dir = os.path.join(inverted_index_dir, 'data')
+    queries_file = os.path.join(assignment_dir, "BooleanQueries.txt")
+    data_dir = os.path.join(inverted_index_dir, "data")
 
-    # Paths to output files
-    part2_output = os.path.join(inverted_index_dir, 'Part_2.txt')
-    part3_output = os.path.join(inverted_index_dir, 'Part_3.txt')
+    part2_output = os.path.join(inverted_index_dir, "Part_2.txt")
+    part3_output = os.path.join(inverted_index_dir, "Part_3.txt")
 
     print("=" * 60)
     print("Text Retrieval Assignment 1 - Wet Part")
