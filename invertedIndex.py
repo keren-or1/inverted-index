@@ -13,7 +13,7 @@ import os
 import re
 import zipfile
 from collections import defaultdict
-from typing import Dict, List, Optional, Set, Tuple
+from typing import Dict, List, Optional, Tuple
 from xml.etree import ElementTree as ET
 
 
@@ -25,7 +25,6 @@ class InvertedIndex:
         doc_id_map: Mapping from internal IDs to original document IDs
         reverse_doc_id_map: Mapping from original IDs to internal IDs
         next_internal_id: Counter for assigning sequential internal IDs
-        punctuation_pattern: Compiled regex for punctuation removal
     """
 
     def __init__(self) -> None:
@@ -34,28 +33,12 @@ class InvertedIndex:
         self.doc_id_map: Dict[int, str] = {}
         self.reverse_doc_id_map: Dict[str, int] = {}
         self.next_internal_id: int = 0
-        self.punctuation_pattern: re.Pattern[str] = re.compile(
-            r'[!"#$%&\'()*+,\-./:;<=>?@\[\\\]^_`{|}~]'
-        )
-
-    def _clean_text(self, text: str) -> str:
-        """Remove specified punctuation marks from text.
-
-        Text is expected to be already lowercased by the AP collection.
-
-        Args:
-            text: Raw text from document.
-
-        Returns:
-            Cleaned text with punctuation removed.
-        """
-        return self.punctuation_pattern.sub("", text)
 
     def _tokenize(self, text: str) -> List[str]:
         """Tokenize text into words by splitting on whitespace.
 
         Args:
-            text: Cleaned text from document.
+            text: Text from document (already preprocessed by AP collection).
 
         Returns:
             List of tokens.
@@ -196,12 +179,11 @@ class InvertedIndex:
 
         Args:
             original_doc_id: Original document ID from AP collection.
-            text: Document text to index.
+            text: Document text to index (already preprocessed by AP collection).
         """
         internal_id = self._get_internal_id(original_doc_id)
 
-        cleaned_text = self._clean_text(text)
-        tokens = self._tokenize(cleaned_text)
+        tokens = self._tokenize(text)
 
         for token in tokens:
             if token:
