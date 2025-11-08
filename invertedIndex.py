@@ -61,37 +61,6 @@ class InvertedIndex:
             return internal_id
         return self.reverse_doc_id_map[original_doc_id]
 
-    def _parse_document(
-        self, doc_element: ET.Element
-    ) -> Tuple[Optional[str], Optional[str]]:
-        """Parse a single document from trectext format.
-
-        Args:
-            doc_element: XML element representing a document.
-
-        Returns:
-            Tuple of (doc_id, text) or (None, None) if parsing fails.
-        """
-        try:
-            docno_elem = doc_element.find("DOCNO")
-            if docno_elem is None or docno_elem.text is None:
-                return None, None
-            original_doc_id = docno_elem.text.strip()
-
-            text_parts: List[str] = []
-            for text_elem in doc_element.findall("TEXT"):
-                if text_elem.text:
-                    text_parts.append(text_elem.text)
-
-            if not text_parts:
-                return original_doc_id, ""
-
-            text = " ".join(text_parts)
-            return original_doc_id, text
-        except Exception as e:
-            print(f"Error parsing document: {e}")
-            return None, None
-
     def build_index_from_zip(self, zip_file_path: str) -> None:
         """Build inverted index from a single zip file.
 
@@ -104,7 +73,8 @@ class InvertedIndex:
                     if not file_info.filename.endswith(".zip"):
                         with zip_ref.open(file_info) as f:
                             xml_content = f.read().decode("utf-8", errors="ignore")
-                            self._process_xml_content(xml_content)
+                            doc_count = self._process_xml_content(xml_content)
+                            print(f"Extracted {doc_count} documents from file {file_info.filename}")
         except Exception as e:
             print(f"Error processing zip file {zip_file_path}: {e}")
 
@@ -133,30 +103,18 @@ class InvertedIndex:
             print(f"Processing {i}/{len(zip_files)}: {zip_file}")
             self.build_index_from_zip(zip_path)
 
-    def _process_xml_content(self, xml_content: str) -> None:
+    def _process_xml_content(self, xml_content: str) -> int:
         """Process XML content and extract documents.
 
         Args:
             xml_content: Raw XML string containing documents.
-        """
-        try:
-            root = ET.fromstring(xml_content)
-            for doc_elem in root.findall(".//DOC"):
-                original_doc_id, text = self._parse_document(doc_elem)
-                if original_doc_id and text:
-                    self.add_document(original_doc_id, text)
-        except ET.ParseError:
-            self._extract_documents_manual(xml_content)
-
-    def _extract_documents_manual(self, xml_content: str) -> None:
-        """Manually extract documents from XML when parsing fails.
-
-        Args:
-            xml_content: Raw XML string containing documents.
+        Returns:
+            Number of documents.
         """
         doc_pattern = r"<DOC>(.*?)</DOC>"
         matches = re.finditer(doc_pattern, xml_content, re.DOTALL)
 
+        counter = 0
         for match in matches:
             doc_str = match.group(1)
 
@@ -167,11 +125,12 @@ class InvertedIndex:
 
             text_matches = re.findall(r"<TEXT>(.*?)</TEXT>", doc_str, re.DOTALL)
             if not text_matches:
-                self.add_document(original_doc_id, "")
                 continue
 
             text = " ".join(text_matches)
             self.add_document(original_doc_id, text)
+            counter += 1
+        return counter
 
     def add_document(self, original_doc_id: str, text: str) -> None:
         """Add a document to the inverted index.
@@ -188,8 +147,7 @@ class InvertedIndex:
             if token:
                 postings = self.index[token]
                 # Append new internal_id (always in ascending order since IDs are sequential)
-                if internal_id not in postings:
-                    postings.append(internal_id)
+                postings.append(internal_id)
 
     def get_postings(self, term: str) -> List[int]:
         """Get postings list for a term (sorted list of internal doc IDs).
