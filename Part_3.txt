@@ -1,0 +1,62 @@
+============================================================
+TOP 10 TERMS WITH HIGHEST DOCUMENT FREQUENCY
+============================================================
+
+Term: 'test'
+Document Frequency: 2
+Postings: ['AP900101-0001', 'AP900101-0002']
+
+Term: 'document'
+Document Frequency: 2
+Postings: ['AP900101-0001', 'AP900101-0002']
+
+Term: 'one'
+Document Frequency: 1
+Postings: ['AP900101-0001']
+
+Term: 'another'
+Document Frequency: 1
+Postings: ['AP900101-0002']
+
+============================================================
+TOP 10 TERMS WITH LOWEST DOCUMENT FREQUENCY
+============================================================
+
+Term: 'test'
+Document Frequency: 2
+Postings: ['AP900101-0001', 'AP900101-0002']
+
+Term: 'document'
+Document Frequency: 2
+Postings: ['AP900101-0001', 'AP900101-0002']
+
+Term: 'one'
+Document Frequency: 1
+Postings: ['AP900101-0001']
+
+Term: 'another'
+Document Frequency: 1
+Postings: ['AP900101-0002']
+
+============================================================
+CHARACTERISTICS COMPARISON
+============================================================
+
+HIGH FREQUENCY TERMS:
+- More common in the collection
+- Appear in many documents
+- Often stop words or general terms
+- Less discriminative for information retrieval
+- Examples help with broad searches
+
+LOW FREQUENCY TERMS:
+- Rare in the collection
+- Appear in few documents
+- Often specific or specialized terms
+- More discriminative for information retrieval
+- Useful for precise searches
+
+============================================================
+TERMS WITH SIMILAR DOCUMENT FREQUENCIES
+============================================================
+
