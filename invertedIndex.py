@@ -269,37 +269,3 @@ class InvertedIndex:
             Original document ID or None if not found.
         """
         return self.doc_id_map.get(internal_id)
-
-    def save_index(self, file_path: str) -> None:
-        """Save the index to a file for persistence.
-
-        Args:
-            file_path: Path where to save the index.
-        """
-        import pickle
-
-        with open(file_path, "wb") as f:
-            pickle.dump(
-                {
-                    "index": dict(self.index),
-                    "doc_id_map": self.doc_id_map,
-                    "reverse_doc_id_map": self.reverse_doc_id_map,
-                    "next_internal_id": self.next_internal_id,
-                },
-                f,
-            )
-
-    def load_index(self, file_path: str) -> None:
-        """Load the index from a file.
-
-        Args:
-            file_path: Path to the saved index file.
-        """
-        import pickle
-
-        with open(file_path, "rb") as f:
-            data = pickle.load(f)
-            self.index = defaultdict(list, {k: sorted(list(v)) if isinstance(v, set) else v for k, v in data["index"].items()})
-            self.doc_id_map = data["doc_id_map"]
-            self.reverse_doc_id_map = data["reverse_doc_id_map"]
-            self.next_internal_id = data["next_internal_id"]
