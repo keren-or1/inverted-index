@@ -113,7 +113,6 @@ class BooleanRetrieval:
         """Compute intersection of two sorted postings lists.
 
         Uses merge algorithm on sorted lists for O(n + m) complexity.
-        Optimization: process shorter list first for better cache locality.
 
         Args:
             postings1: First sorted postings list.
@@ -122,10 +121,6 @@ class BooleanRetrieval:
         Returns:
             Sorted list of documents in both postings lists.
         """
-        # Optimize by processing shorter list first
-        if len(postings1) > len(postings2):
-            postings1, postings2 = postings2, postings1
-
         result: List[int] = []
         i = j = 0
 
