@@ -71,31 +71,17 @@ class BooleanRetrieval:
                 stack.append(result)
 
             elif token == "NOT":
-                if i + 1 < len(tokens) and tokens[i + 1] not in ["AND", "OR"]:
-                    i += 1
-                    next_token = tokens[i].strip()
+                if len(stack) < 1:
+                    raise ValueError("Invalid query: NOT without operand")
+                operand = stack.pop()
+                negated = self._merge_not(operand)
 
-                    postings = self.index.get_postings(next_token)
-                    negated = self._merge_not(postings)
-
-                    if len(stack) > 0:
-                        operand1 = stack.pop()
-                        result = self._merge_and(operand1, negated)
-                        stack.append(result)
-                    else:
-                        stack.append(negated)
+                if len(stack) > 0:
+                    operand1 = stack.pop()
+                    result = self._merge_and(operand1, negated)
+                    stack.append(result)
                 else:
-                    if len(stack) < 1:
-                        raise ValueError("Invalid query: NOT without operand")
-                    operand = stack.pop()
-                    negated = self._merge_not(operand)
-
-                    if len(stack) > 0:
-                        operand1 = stack.pop()
-                        result = self._merge_and(operand1, negated)
-                        stack.append(result)
-                    else:
-                        stack.append(negated)
+                    stack.append(negated)
 
             else:
                 # It's a term, get its postings list
