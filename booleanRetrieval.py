@@ -171,7 +171,7 @@ class BooleanRetrieval:
     def _merge_not(self, postings: List[int]) -> List[int]:
         """Compute complement of a postings list.
 
-        Returns documents NOT containing the term.
+        Returns documents NOT containing the term using efficient merge on sorted lists.
 
         Args:
             postings: Sorted postings list.
@@ -179,8 +179,19 @@ class BooleanRetrieval:
         Returns:
             Sorted list of all other documents in collection.
         """
-        all_docs = set(range(self.index.get_collection_size()))
-        result = sorted(all_docs - set(postings))
+        result: List[int] = []
+        collection_size = self.index.get_collection_size()
+        postings_idx = 0
+
+        # Iterate through all document IDs and include those NOT in postings
+        for doc_id in range(collection_size):
+            # Skip documents that are in the postings list
+            if postings_idx < len(postings) and postings[postings_idx] == doc_id:
+                postings_idx += 1
+            else:
+                # This document is NOT in postings, so include it
+                result.append(doc_id)
+
         return result
 
     def retrieve(self, query_string: str) -> List[str]:
