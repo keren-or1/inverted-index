@@ -119,7 +119,7 @@ class InvertedIndex:
             with zipfile.ZipFile(zip_file_path, 'r') as zip_ref:
                 # Process each file in the zip
                 for file_info in zip_ref.filelist:
-                    if file_info.filename.endswith('.txt'):
+                    if not file_info.filename.endswith('.zip'):
                         with zip_ref.open(file_info) as f:
                             xml_content = f.read().decode('utf-8', errors='ignore')
                             self._process_xml_content(xml_content)

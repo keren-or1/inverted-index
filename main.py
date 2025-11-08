@@ -34,13 +34,14 @@ def build_index(data_dir=None):
     index = InvertedIndex()
 
     if data_dir is None:
-        # Default location for data directory
-        data_dir = os.path.join(get_project_root(), 'assignment1', 'data')
+        # Default location for data directory (in inverted-index folder)
+        data_dir = os.path.join(get_project_root(), 'data')
 
     if os.path.exists(data_dir):
         print(f"Using data directory: {data_dir}")
+        print("Processing AP collection (242,918 documents across 9 zip files)...")
         index.build_index_from_directory(data_dir)
-        print(f"Index built successfully!")
+        print(f"\nIndex built successfully!")
         print(f"  Documents indexed: {index.get_collection_size()}")
         print(f"  Unique terms: {index.get_vocabulary_size()}")
     else:
@@ -270,7 +271,7 @@ def main():
 
     # Paths to input files
     queries_file = os.path.join(assignment_dir, 'BooleanQueries.txt')
-    data_dir = os.path.join(assignment_dir, 'data')
+    data_dir = os.path.join(inverted_index_dir, 'data')
 
     # Paths to output files
     part2_output = os.path.join(inverted_index_dir, 'Part_2.txt')
