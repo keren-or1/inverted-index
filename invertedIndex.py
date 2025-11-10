@@ -143,11 +143,15 @@ class InvertedIndex:
 
         tokens = self._tokenize(text)
 
+        # Track which terms we've already added this document to, to avoid duplicates
+        indexed_terms = set()
+
         for token in tokens:
-            if token:
+            if token and token not in indexed_terms:
                 postings = self.index[token]
                 # Append new internal_id (always in ascending order since IDs are sequential)
                 postings.append(internal_id)
+                indexed_terms.add(token)
 
     def get_postings(self, term: str) -> List[int]:
         """Get postings list for a term (sorted list of internal doc IDs).
