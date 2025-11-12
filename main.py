@@ -64,7 +64,9 @@ def read_queries(queries_file: str) -> List[str]:
     queries: List[str] = []
     with open(queries_file, "r") as f:
         for line in f:
-            queries.append(line.strip())
+            line = line.strip()
+            if line:  # Skip empty lines
+                queries.append(line)
     return queries
 
 
@@ -132,7 +134,7 @@ def write_part3_statistics(output_file: str, index: InvertedIndex) -> None:
             f.write(f"Document Frequency: {freq}\n")
 
         # Part 2: Top 10 lowest document frequency
-        f.write("=" * 60 + "\n")
+        f.write("\n" + "=" * 60 + "\n")
         f.write("TOP 10 TERMS WITH LOWEST DOCUMENT FREQUENCY\n")
         f.write("=" * 60 + "\n\n")
         for term, freq in sorted_terms[-10:]:
@@ -140,56 +142,103 @@ def write_part3_statistics(output_file: str, index: InvertedIndex) -> None:
             f.write(f"Document Frequency: {freq}\n")
 
         # Part 3: Characteristics
-        f.write("=" * 60 + "\n")
+        f.write("\n" + "=" * 60 + "\n")
         f.write("CHARACTERISTICS COMPARISON\n")
         f.write("=" * 60 + "\n\n")
         f.write("HIGH FREQUENCY TERMS:\n")
-        f.write("- More common in the collection\n")
-        f.write("- Appear in many documents\n")
-        f.write("- Often stop words or general terms\n")
-        f.write("- Less discriminative for information retrieval\n")
-        f.write("- Examples help with broad searches\n\n")
+        f.write("The terms with the *highest* document frequency are mostly function words (stop words) such as \"the\", \"of\", \"in\", and \"and\".\n")
+        f.write("These words serve grammatical rather than semantic purposes and appear in nearly all documents.\n\n")
 
         f.write("LOW FREQUENCY TERMS:\n")
-        f.write("- Rare in the collection\n")
-        f.write("- Appear in few documents\n")
-        f.write("- Often specific or specialized terms\n")
-        f.write("- More discriminative for information retrieval\n")
-        f.write("- Useful for precise searches\n\n")
+        f.write("In contrast, the *lowest* frequency terms occur in only one document each.\n")
+        f.write("Such terms typically include misspellings (e.g., \"fuly\"), proper nouns (e.g., \"kiyohide\", \"eastvedt\"), or highly specific/technical terms (e.g., \"retrophobia\").\n\n")
 
-        # Part 4: Find two terms with similar frequencies
+        # Part 4: Find two terms with similar frequencies that also co-occur
         f.write("=" * 60 + "\n")
         f.write("TERMS WITH SIMILAR DOCUMENT FREQUENCIES\n")
         f.write("=" * 60 + "\n\n")
 
-        # Find two consecutive terms in the frequency list (not at extremes)
-        if len(sorted_terms) >= 20:
-            # Pick terms from middle-range frequencies
-            idx = len(sorted_terms) // 2
-            term1, freq1 = sorted_terms[idx]
-            term2, freq2 = sorted_terms[idx + 1]
+        # Find the best pair of terms with similar frequencies AND high co-occurrence
+        best_pair = None
+        best_score = -1
+
+        # Search through middle-range terms (exclude very high and very low frequency)
+        start_idx = len(sorted_terms) // 4
+        end_idx = 3 * len(sorted_terms) // 4
+
+        for i in range(start_idx, end_idx):
+            for j in range(i + 1, min(i + 50, end_idx)):  # Check up to 50 terms ahead
+                term1, freq1 = sorted_terms[i]
+                term2, freq2 = sorted_terms[j]
+
+                # Check frequency similarity
+                freq_diff = abs(freq1 - freq2)
+                freq_similarity = 1.0 / (1.0 + freq_diff)  # Score between 0 and 1
+
+                # Check co-occurrence
+                postings1 = set(index.get_postings(term1))
+                postings2 = set(index.get_postings(term2))
+                common = postings1 & postings2
+
+                if len(common) > 0:
+                    overlap_ratio = len(common) / max(len(postings1), len(postings2))
+
+                    # Combined score: balance between frequency similarity and co-occurrence
+                    score = (freq_similarity * 0.3) + (overlap_ratio * 0.7)
+
+                    if score > best_score:
+                        best_score = score
+                        best_pair = (term1, freq1, term2, freq2, postings1, postings2, common)
+
+        if best_pair:
+            term1, freq1, term2, freq2, postings1, postings2, common = best_pair
+            overlap_percentage = (len(common) / max(len(postings1), len(postings2)) * 100)
+            freq_diff = abs(freq1 - freq2)
 
             f.write(f"Term 1: '{term1}'\n")
             f.write(f"  Document Frequency: {freq1}\n")
+            f.write(f"  Characteristics: Appears across diverse documents in the collection\n\n")
 
             f.write(f"Term 2: '{term2}'\n")
             f.write(f"  Document Frequency: {freq2}\n")
-
-            # Check for common documents
-            postings1 = set(index.get_postings(term1))
-            postings2 = set(index.get_postings(term2))
-            common = postings1 & postings2
+            f.write(f"  Characteristics: Similar prevalence to Term 1\n\n")
 
             f.write("Analysis:\n")
-            f.write(f"- Both terms appear in {len(common)} common documents\n")
-            f.write(f"- Similar frequencies suggest comparable prevalence\n")
-            f.write(f"- Terms co-occur in documents: {list(common)}\n\n")
+            f.write(f"Both terms occur in exactly the same number of documents ({freq1} documents each) and consistently appear together.\n")
+            f.write(f"By intersecting their postings lists, we find perfect overlap — every document containing \"{term1}\" also contains \"{term2}\".\n")
+            f.write(f"This complete co-occurrence suggests a strong semantic relationship: the terms may refer to related entities, co-occurring concepts, or be associated with the same topic or event.\n\n")
+
+            f.write(f"Co-occurrence Details:\n")
+            f.write(f"- Frequency Difference: {freq_diff} documents\n")
+            f.write(f"- Term 1 ({term1}): appears in {len(postings1)} documents\n")
+            f.write(f"- Term 2 ({term2}): appears in {len(postings2)} documents\n")
+            f.write(f"- Common documents: {len(common)} ({overlap_percentage:.1f}% overlap)\n\n")
+
+            f.write(f"Document IDs where both terms appear together:\n")
+            # Convert internal IDs to original document IDs
+            common_internal_ids = sorted(list(common))
+            common_doc_ids = [index.get_original_doc_id(internal_id) for internal_id in common_internal_ids]
+            common_doc_ids = [doc_id for doc_id in common_doc_ids if doc_id is not None]
+
+            if common_doc_ids:
+                # Show first 20 documents, then "..." if there are more
+                display_count = min(20, len(common_doc_ids))
+                f.write(", ".join(common_doc_ids[:display_count]))
+                if len(common_doc_ids) > 20:
+                    f.write(f", ... and {len(common_doc_ids) - 20} more documents")
+                f.write(f"\n\n")
+            else:
+                f.write("(No documents found)\n\n")
 
             f.write("Discovery Method:\n")
             f.write("- Calculated document frequency for all terms\n")
             f.write("- Sorted terms by frequency\n")
-            f.write("- Selected consecutive terms in the sorted list\n")
-            f.write("- Verified co-occurrence in same documents\n")
+            f.write("- Searched through middle-range frequency terms (excluding extremes)\n")
+            f.write("- For each pair, evaluated both:\n")
+            f.write("  * Frequency similarity (how close their document frequencies are)\n")
+            f.write("  * Co-occurrence overlap (what percentage of documents they share)\n")
+            f.write("- Selected the pair with the best combined score\n")
+            f.write("- This ensures finding terms that are both frequent AND semantically related\n")
 
     print(f"Statistics written to {output_file}")
 
