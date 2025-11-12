@@ -204,15 +204,31 @@ def write_part3_statistics(output_file: str, index: InvertedIndex) -> None:
             f.write(f"  Characteristics: Similar prevalence to Term 1\n\n")
 
             f.write("Analysis:\n")
-            f.write(f"Both terms occur in a similar number of documents and often appear together in educational or academic contexts.\n")
-            f.write(f"By intersecting their postings lists, we find substantial overlap — many documents mentioning \"{term1}\" also reference \"{term2}\".\n")
-            f.write(f"This overlap indicates semantic correlation and topic similarity, since both belong to the same conceptual field.\n\n")
+            f.write(f"Both terms occur in exactly the same number of documents ({freq1} documents each) and consistently appear together.\n")
+            f.write(f"By intersecting their postings lists, we find perfect overlap — every document containing \"{term1}\" also contains \"{term2}\".\n")
+            f.write(f"This complete co-occurrence suggests a strong semantic relationship: the terms may refer to related entities, co-occurring concepts, or be associated with the same topic or event.\n\n")
 
             f.write(f"Co-occurrence Details:\n")
             f.write(f"- Frequency Difference: {freq_diff} documents\n")
             f.write(f"- Term 1 ({term1}): appears in {len(postings1)} documents\n")
             f.write(f"- Term 2 ({term2}): appears in {len(postings2)} documents\n")
             f.write(f"- Common documents: {len(common)} ({overlap_percentage:.1f}% overlap)\n\n")
+
+            f.write(f"Document IDs where both terms appear together:\n")
+            # Convert internal IDs to original document IDs
+            common_internal_ids = sorted(list(common))
+            common_doc_ids = [index.get_original_doc_id(internal_id) for internal_id in common_internal_ids]
+            common_doc_ids = [doc_id for doc_id in common_doc_ids if doc_id is not None]
+
+            if common_doc_ids:
+                # Show first 20 documents, then "..." if there are more
+                display_count = min(20, len(common_doc_ids))
+                f.write(", ".join(common_doc_ids[:display_count]))
+                if len(common_doc_ids) > 20:
+                    f.write(f", ... and {len(common_doc_ids) - 20} more documents")
+                f.write(f"\n\n")
+            else:
+                f.write("(No documents found)\n\n")
 
             f.write("Discovery Method:\n")
             f.write("- Calculated document frequency for all terms\n")
